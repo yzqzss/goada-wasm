@@ -59,9 +59,10 @@ func TestNew(t *testing.T) {
 		},
 	}
 
+	parser, _ := goadawasm.NewParser()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url, err := goadawasm.New(tt.input)
+			url, err := parser.New(tt.input)
 
 			if tt.expectError {
 				if err == nil {
@@ -149,9 +150,11 @@ func TestNewWithBase(t *testing.T) {
 		},
 	}
 
+	parser, _ := goadawasm.NewParser()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url, err := goadawasm.NewWithBase(tt.urlString, tt.baseString)
+			url, err := parser.NewWithBase(tt.urlString, tt.baseString)
 
 			if tt.expectError {
 				if err == nil {
@@ -185,8 +188,9 @@ func TestNewWithBase(t *testing.T) {
 }
 
 func TestUrlComponents(t *testing.T) {
+	parser, _ := goadawasm.NewParser()
 	testURL := "https://user:password@example.com:8080/path/to/resource?query=value&foo=bar#fragment"
-	url, err := goadawasm.New(testURL)
+	url, err := parser.New(testURL)
 	if err != nil {
 		t.Fatalf("failed to parse URL: %v", err)
 	}
@@ -273,9 +277,11 @@ func TestUrlBooleanMethods(t *testing.T) {
 		},
 	}
 
+	parser, _ := goadawasm.NewParser()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url, err := goadawasm.New(tt.url)
+			url, err := parser.New(tt.url)
 			if err != nil {
 				t.Fatalf("failed to parse URL: %v", err)
 			}
@@ -318,7 +324,9 @@ func TestUrlBooleanMethods(t *testing.T) {
 }
 
 func TestUrlSetters(t *testing.T) {
-	url, err := goadawasm.New("https://example.com/path")
+	parser, _ := goadawasm.NewParser()
+
+	url, err := parser.New("https://example.com/path")
 	if err != nil {
 		t.Fatalf("failed to parse URL: %v", err)
 	}
@@ -398,7 +406,8 @@ func TestUrlSetters(t *testing.T) {
 }
 
 func TestUrlSettersFailure(t *testing.T) {
-	url, err := goadawasm.New("https://example.com/path")
+	parser, _ := goadawasm.NewParser()
+	url, err := parser.New("https://example.com/path")
 	if err != nil {
 		t.Fatalf("failed to parse URL: %v", err)
 	}
@@ -417,9 +426,10 @@ func TestUrlSettersFailure(t *testing.T) {
 }
 
 func TestMemoryManagement(t *testing.T) {
+	parser, _ := goadawasm.NewParser()
 	// Test that multiple URLs can be created and freed
 	for i := 0; i < 50; i++ { // Reduced iterations to avoid memory issues
-		url, err := goadawasm.New("https://example.com/path")
+		url, err := parser.New("https://example.com/path")
 		if err != nil {
 			t.Fatalf("failed to parse URL: %v", err)
 		}
@@ -436,17 +446,22 @@ func TestMemoryManagement(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	url, err := goadawasm.New("https://example.com:8080/path?query=value#fragment")
-	if err != nil {
-		t.Fatalf("failed to parse URL: %v", err)
-	}
-	defer url.Free()
-
-	// Test concurrent reads
+	// Test that URL operations are safe for concurrent read access with separate URLs
 	done := make(chan bool)
 	for i := 0; i < 10; i++ {
 		go func() {
-			// These should all be safe to call concurrently
+			parser, _ := goadawasm.NewParser()
+			defer parser.Close()
+			// Each goroutine creates its own URL to avoid race conditions
+			url, err := parser.New("https://example.com:8080/path?query=value#fragment")
+			if err != nil {
+				t.Errorf("failed to parse URL: %v", err)
+				done <- true
+				return
+			}
+			defer url.Free()
+
+			// These should all be safe to call concurrently on separate URL objects
 			_ = url.Href()
 			_ = url.Protocol()
 			_ = url.Host()
@@ -488,9 +503,10 @@ func TestEdgeCases(t *testing.T) {
 		},
 	}
 
+	parser, _ := goadawasm.NewParser()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url, err := goadawasm.New(tt.url)
+			url, err := parser.New(tt.url)
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error but got none")
@@ -526,10 +542,10 @@ func TestEdgeCases(t *testing.T) {
 
 func BenchmarkNew(b *testing.B) {
 	testURL := "https://user:password@example.com:8080/path/to/resource?query=value&foo=bar#fragment"
-
+	parser, _ := goadawasm.NewParser()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		url, err := goadawasm.New(testURL)
+		url, err := parser.New(testURL)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -543,11 +559,12 @@ func BenchmarkUrlParsing(b *testing.B) {
 		"http://user:pass@example.com:8080/path?query=value#fragment",
 		"https://secure.example.com/api/v1/users/123",
 	}
+	parser, _ := goadawasm.NewParser()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		testURL := testURLs[i%len(testURLs)]
-		url, err := goadawasm.New(testURL)
+		url, err := parser.New(testURL)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -562,7 +579,8 @@ func BenchmarkUrlParsing(b *testing.B) {
 }
 
 func BenchmarkUrlAccess(b *testing.B) {
-	url, err := goadawasm.New("https://user:password@example.com:8080/path/to/resource?query=value&foo=bar#fragment")
+	parser, _ := goadawasm.NewParser()
+	url, err := parser.New("https://user:password@example.com:8080/path/to/resource?query=value&foo=bar#fragment")
 	if err != nil {
 		b.Fatal(err)
 	}
