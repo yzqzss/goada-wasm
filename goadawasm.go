@@ -155,8 +155,11 @@ func callAdaBoolFunction(funcName string, urlPtr uint32) bool {
 	return results[0] != 0
 }
 
-// Free the URL object in WASM memory
-func free(u *Url) {
+// ada_free
+func ada_free(u *Url) {
+	wasmMutex.Lock()
+	defer wasmMutex.Unlock()
+
 	if u.cpointer != 0 {
 		adaFree := wasmModule.ExportedFunction("ada_free")
 		if adaFree != nil {
@@ -210,7 +213,7 @@ func New(urlstring string) (*Url, error) {
 	}
 	url := &Url{cpointer: urlObjPtr}
 
-	runtime.SetFinalizer(url, free)
+	runtime.SetFinalizer(url, ada_free)
 	return url, nil
 }
 
@@ -264,16 +267,14 @@ func NewWithBase(urlstring, basestring string) (*Url, error) {
 	}
 
 	url := &Url{cpointer: urlObjPtr}
-	runtime.SetFinalizer(url, free)
+	runtime.SetFinalizer(url, ada_free)
 	return url, nil
 }
 
 // Free manually frees the URL object
 func (u *Url) Free() {
-	wasmMutex.Lock()
-	defer wasmMutex.Unlock()
 	runtime.SetFinalizer(u, nil)
-	free(u)
+	ada_free(u)
 }
 
 // Valid checks if the URL is valid
