@@ -1,0 +1,4 @@
+github.com/ada-url/goada v1.0.0 h1:Y2coJ/lJ4Ln3NO/Jx4aQmsrA4Lg57ptWr4MJX+oNFfc=
+github.com/ada-url/goada v1.0.0/go.mod h1:+D/veNwI2mA1hDYLVrYSobYcLFWm6e3DJ/H/d/dxlu8=
+github.com/tetratelabs/wazero v1.9.0 h1:IcZ56OuxrtaEz8UYNRHBrUa9bYeX9oVY93KspZZBf/I=
+github.com/tetratelabs/wazero v1.9.0/go.mod h1:TSbcXCfFP0L2FGkRPxHphadXPjo1T6W+CseNNY7EkjM=
