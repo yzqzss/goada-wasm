@@ -28,7 +28,21 @@ var (
 	wasmCtx     context.Context
 	initOnce    sync.Once
 	wasmMutex   sync.Mutex
+	funcCache   = sync.Map{} // map[string]api.Function
 )
+
+func wasmModuleExportedFunction(name string) api.Function {
+	fn_, ok := funcCache.Load(name)
+	if ok {
+		return fn_.(api.Function)
+	}
+
+	fn := wasmModule.ExportedFunction(name)
+	if fn != nil {
+		funcCache.Store(name, fn)
+	}
+	return fn
+}
 
 // Initialize the WASM runtime and module
 func initWasm() {
@@ -58,7 +72,7 @@ type Url struct {
 
 // Helper function to allocate memory in WASM
 func wasmMalloc(size uint32) (uint32, error) {
-	malloc := wasmModule.ExportedFunction("malloc")
+	malloc := wasmModuleExportedFunction("malloc")
 	if malloc == nil {
 		return 0, errors.New("malloc function not found")
 	}
@@ -73,7 +87,7 @@ func wasmMalloc(size uint32) (uint32, error) {
 
 // Helper function to free memory in WASM
 func wasmFree(ptr uint32) error {
-	free := wasmModule.ExportedFunction("free")
+	free := wasmModuleExportedFunction("free")
 	if free == nil {
 		return errors.New("free function not found")
 	}
@@ -142,7 +156,7 @@ func readAdaString(fn api.Function, urlPtr uint32) (string, error) {
 
 // Helper function to call a boolean-returning Ada function
 func callAdaBoolFunction(funcName string, urlPtr uint32) bool {
-	fn := wasmModule.ExportedFunction(funcName)
+	fn := wasmModuleExportedFunction(funcName)
 	if fn == nil {
 		return false
 	}
@@ -161,7 +175,7 @@ func ada_free(u *Url) {
 	defer wasmMutex.Unlock()
 
 	if u.cpointer != 0 {
-		adaFree := wasmModule.ExportedFunction("ada_free")
+		adaFree := wasmModuleExportedFunction("ada_free")
 		if adaFree != nil {
 			adaFree.Call(wasmCtx, uint64(u.cpointer))
 		}
@@ -188,7 +202,7 @@ func New(urlstring string) (*Url, error) {
 	defer wasmFree(urlPtr)
 
 	// Call ada_parse
-	parseFunc := wasmModule.ExportedFunction("ada_parse")
+	parseFunc := wasmModuleExportedFunction("ada_parse")
 	if parseFunc == nil {
 		return nil, errors.New("ada_parse function not found")
 	}
@@ -205,7 +219,7 @@ func New(urlstring string) (*Url, error) {
 
 	// Check if the URL is valid
 	if !callAdaBoolFunction("ada_is_valid", urlObjPtr) {
-		adaFree := wasmModule.ExportedFunction("ada_free")
+		adaFree := wasmModuleExportedFunction("ada_free")
 		if adaFree != nil {
 			adaFree.Call(wasmCtx, uint64(urlObjPtr))
 		}
@@ -242,7 +256,7 @@ func NewWithBase(urlstring, basestring string) (*Url, error) {
 	defer wasmFree(basePtr)
 
 	// Call ada_parse_with_base
-	parseFunc := wasmModule.ExportedFunction("ada_parse_with_base")
+	parseFunc := wasmModuleExportedFunction("ada_parse_with_base")
 	if parseFunc == nil {
 		return nil, errors.New("ada_parse_with_base function not found")
 	}
@@ -259,7 +273,7 @@ func NewWithBase(urlstring, basestring string) (*Url, error) {
 
 	// Check if the URL is valid
 	if !callAdaBoolFunction("ada_is_valid", urlObjPtr) {
-		adaFree := wasmModule.ExportedFunction("ada_free")
+		adaFree := wasmModuleExportedFunction("ada_free")
 		if adaFree != nil {
 			adaFree.Call(wasmCtx, uint64(urlObjPtr))
 		}
@@ -351,7 +365,7 @@ func (u *Url) HasSearch() bool {
 func (u *Url) Href() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_href")
+	fn := wasmModuleExportedFunction("ada_get_href")
 	if fn == nil {
 		return ""
 	}
@@ -363,7 +377,7 @@ func (u *Url) Href() string {
 func (u *Url) Username() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_username")
+	fn := wasmModuleExportedFunction("ada_get_username")
 	if fn == nil {
 		return ""
 	}
@@ -375,7 +389,7 @@ func (u *Url) Username() string {
 func (u *Url) Password() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_password")
+	fn := wasmModuleExportedFunction("ada_get_password")
 	if fn == nil {
 		return ""
 	}
@@ -387,7 +401,7 @@ func (u *Url) Password() string {
 func (u *Url) Port() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_port")
+	fn := wasmModuleExportedFunction("ada_get_port")
 	if fn == nil {
 		return ""
 	}
@@ -399,7 +413,7 @@ func (u *Url) Port() string {
 func (u *Url) Hash() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_hash")
+	fn := wasmModuleExportedFunction("ada_get_hash")
 	if fn == nil {
 		return ""
 	}
@@ -411,7 +425,7 @@ func (u *Url) Hash() string {
 func (u *Url) Host() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_host")
+	fn := wasmModuleExportedFunction("ada_get_host")
 	if fn == nil {
 		return ""
 	}
@@ -423,7 +437,7 @@ func (u *Url) Host() string {
 func (u *Url) Hostname() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_hostname")
+	fn := wasmModuleExportedFunction("ada_get_hostname")
 	if fn == nil {
 		return ""
 	}
@@ -435,7 +449,7 @@ func (u *Url) Hostname() string {
 func (u *Url) Pathname() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_pathname")
+	fn := wasmModuleExportedFunction("ada_get_pathname")
 	if fn == nil {
 		return ""
 	}
@@ -447,7 +461,7 @@ func (u *Url) Pathname() string {
 func (u *Url) Search() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_search")
+	fn := wasmModuleExportedFunction("ada_get_search")
 	if fn == nil {
 		return ""
 	}
@@ -459,7 +473,7 @@ func (u *Url) Search() string {
 func (u *Url) Protocol() string {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction("ada_get_protocol")
+	fn := wasmModuleExportedFunction("ada_get_protocol")
 	if fn == nil {
 		return ""
 	}
@@ -471,7 +485,7 @@ func (u *Url) Protocol() string {
 func (u *Url) allSetterBoolWithLock(funcName, value string) bool {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction(funcName)
+	fn := wasmModuleExportedFunction(funcName)
 	if fn == nil {
 		return false
 	}
@@ -494,7 +508,7 @@ func (u *Url) allSetterBoolWithLock(funcName, value string) bool {
 func (u *Url) callSetterVoidWithLock(funcName, value string) {
 	wasmMutex.Lock()
 	defer wasmMutex.Unlock()
-	fn := wasmModule.ExportedFunction(funcName)
+	fn := wasmModuleExportedFunction(funcName)
 	if fn == nil {
 		return
 	}
