@@ -305,7 +305,7 @@ func (p *Parser) New(urlstring string) (*Url, error) {
 
 // NewWithBase parses the given strings into a URL with a base URL using the parser
 func (p *Parser) NewWithBase(urlstring, basestring string) (*Url, error) {
-	if len(urlstring) == 0 || len(basestring) == 0 {
+	if len(urlstring) == 0 && len(basestring) == 0 {
 		return nil, ErrEmptyString
 	}
 

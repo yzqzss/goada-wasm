@@ -129,13 +129,6 @@ func TestNewWithBase(t *testing.T) {
 		{
 			name:        "empty URL string",
 			urlString:   "",
-			baseString:  "https://example.com/",
-			expectError: true,
-			errorType:   goadawasm.ErrEmptyString,
-		},
-		{
-			name:        "empty base string",
-			urlString:   "path",
 			baseString:  "",
 			expectError: true,
 			errorType:   goadawasm.ErrEmptyString,
