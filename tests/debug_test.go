@@ -7,8 +7,7 @@ import (
 )
 
 func TestDebugProtocolBehavior(t *testing.T) {
-	parser, _ := goadawasm.NewParser()
-	url, err := parser.New("https://example.com/")
+	url, err := goadawasm.New("https://example.com/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +28,7 @@ func TestDebugProtocolBehavior(t *testing.T) {
 
 	for _, proto := range protocols {
 		// Create a fresh URL for each test
-		testURL, err := parser.New("https://example.com/")
+		testURL, err := goadawasm.New("https://example.com/")
 		if err != nil {
 			t.Errorf("Failed to create URL: %v", err)
 			continue
@@ -44,7 +43,7 @@ func TestDebugProtocolBehavior(t *testing.T) {
 
 	// Test null byte handling
 	t.Log("Testing null byte handling:")
-	nullURL, err := parser.New("https://example.com/path\x00")
+	nullURL, err := goadawasm.New("https://example.com/path\x00")
 	if err != nil {
 		t.Logf("URL with null byte correctly rejected: %v", err)
 	} else {

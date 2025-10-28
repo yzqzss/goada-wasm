@@ -11,7 +11,7 @@ import (
 // TestConcurrentMemoryStress tests memory handling under concurrent load
 func TestConcurrentMemoryStress(t *testing.T) {
 	t.Run("concurrent_url_creation", func(t *testing.T) {
-		const goroutines = 10
+		const goroutines = 100
 		const iterations = 200
 
 		var wg sync.WaitGroup
@@ -21,10 +21,8 @@ func TestConcurrentMemoryStress(t *testing.T) {
 			wg.Add(1)
 			go func(goroutineID int) {
 				defer wg.Done()
-				parser, _ := goadawasm.NewParser()
-
 				for i := 0; i < iterations; i++ {
-					url, err := parser.New("https://example.com/concurrent/test")
+					url, err := goadawasm.New("https://example.com/concurrent/test")
 					if err != nil {
 						errors <- err
 						return
