@@ -15,21 +15,20 @@ func compareString(t *testing.T, expected, actual, message string) {
 }
 
 func TestBadUrl(t *testing.T) {
-	parser, _ := goadawasm.NewParser()
 
-	url, err := parser.New("some bad url")
+	url, err := goadawasm.New("some bad url")
 	if err == nil {
 		t.Error("Expected error")
 	}
 	if url != nil {
 		t.Error("Expected no URL")
 	}
+	t.Logf("err=%v", err)
 }
 
 func TestGoodUrl(t *testing.T) {
-	parser, _ := goadawasm.NewParser()
 
-	url, err := parser.New("https://www.GOogle.com")
+	url, err := goadawasm.New("https://www.GOogle.com")
 	if err != nil {
 		t.Error("Expected no error")
 	}
@@ -40,9 +39,8 @@ func TestGoodUrl(t *testing.T) {
 }
 
 func TestGoodUrlSet(t *testing.T) {
-	parser, _ := goadawasm.NewParser()
 
-	url, err := parser.New("https://www.GOogle.com")
+	url, err := goadawasm.New("https://www.GOogle.com")
 	if err != nil {
 		t.Error("Expected no error")
 	}
@@ -61,9 +59,8 @@ func TestGoodUrlSet(t *testing.T) {
 }
 
 func TestStandard(t *testing.T) {
-	parser, _ := goadawasm.NewParser()
 	s1 := "https://	www.GOoglé.com/./path/../path2/"
-	url, err := parser.New(s1)
+	url, err := goadawasm.New(s1)
 	if err != nil {
 		t.Error("Expected no error")
 	}

@@ -57,10 +57,8 @@ func ensureGlobalInit() {
 	initOnce.Do(initGlobalWasm)
 }
 
-var c = 0
-
-// NewParser creates a new Parser with its own WASM module instance
-func NewParser() (*Parser, error) {
+// newParser creates a new Parser with its own WASM module instance
+func newParser() (*Parser, error) {
 	ensureGlobalInit()
 
 	// Create a new module instance from the compiled module
@@ -76,6 +74,42 @@ func NewParser() (*Parser, error) {
 	}
 	runtime.SetFinalizer(parser, (*Parser).Close)
 	return parser, nil
+}
+
+var parserPool = sync.Pool{
+	New: func() any {
+		parser, err := newParser()
+		if err != nil {
+			panic("failed to create Parser: " + err.Error())
+		}
+		return parser
+	},
+}
+
+func New(urlstring string) (*Url, error) {
+	parser := parserPool.Get().(*Parser)
+	// Don't return parser yet - Url will own it
+
+	url, err := parser.New(urlstring)
+	if err != nil {
+		parserPool.Put(parser) // Return on error
+		return nil, err
+	}
+
+	return url, nil
+}
+
+func NewWithBase(urlstring, basestring string) (*Url, error) {
+	parser := parserPool.Get().(*Parser)
+	// Don't return parser yet - Url will own it
+
+	url, err := parser.NewWithBase(urlstring, basestring)
+	if err != nil {
+		parserPool.Put(parser) // Return on error
+		return nil, err
+	}
+
+	return url, nil
 }
 
 // Close closes the parser and releases its WASM module instance
@@ -252,7 +286,7 @@ func (p *Parser) New(urlstring string) (*Url, error) {
 
 	urlObjPtr := uint32(results[0])
 	if urlObjPtr == 0 {
-		return nil, ErrInvalidUrl
+		return nil, errors.Join(ErrInvalidUrl, errors.New("empty url object!"))
 	}
 
 	// Check if the URL is valid
@@ -322,6 +356,11 @@ func (p *Parser) NewWithBase(urlstring, basestring string) (*Url, error) {
 func (u *Url) Free() {
 	runtime.SetFinalizer(u, nil)
 	u.ada_free()
+	// Return parser to pool
+	if u.parser != nil {
+		parserPool.Put(u.parser)
+		u.parser = nil
+	}
 }
 
 // Valid checks if the URL is valid

@@ -17,9 +17,9 @@ export PATH=$PATH:`pwd`/wasi-sdk-27.0-x86_64-linux/bin
 rm -f ada.cpp ada.h ada.wasm
 
 # Download Ada library if not exists
-echo "Downloading Ada library v3.2.7..."
-wcurl https://github.com/ada-url/ada/releases/download/v3.2.7/ada.cpp
-wcurl https://github.com/ada-url/ada/releases/download/v3.2.7/ada.h
+echo "Downloading Ada library v3.3.0..."
+wcurl https://github.com/ada-url/ada/releases/download/v3.3.0/ada.cpp
+wcurl https://github.com/ada-url/ada/releases/download/v3.3.0/ada.h
 
 # Compile Ada library to WASM
 echo "Compiling Ada library to WASM..."
